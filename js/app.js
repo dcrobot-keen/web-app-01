@@ -1,30 +1,25 @@
-var geoserverUrl = "http://127.0.0.1:8082/geoserver";
+var geoserverUrl = "http://43.201.115.14:8080/geoserver/dcrobot/ows";
 var selectedPoint = null;
 
 var source = null;
 var target = null;
 
-// initialize our map
 var map = L.map("map", {
-	center: [-1.2836622060674874, 36.822524070739746],
-	zoom: 16 //set the zoom level
+	center: [37.3599201,127.1098894],
+	zoom: 14, //set the zoom level
+	crs: L.Proj.CRS.Daum,
+    worldCopyJump: false,   
 });
 
-//add openstreet map baselayer to the map
-var OpenStreetMap = L.tileLayer(
-	"http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-	{
-		maxZoom: 19,
-		attribution:
-			'&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-	}
-).addTo(map);
+var baseLayers = L.tileLayer.koreaProvider('DaumMap.Street').addTo(map);
+
+L.control.scale().addTo(map); 
 
 // empty geojson layer for the shortes path result
 var pathLayer = L.geoJSON(null);
 
 // draggable marker for starting point. Note the marker is initialized with an initial starting position
-var sourceMarker = L.marker([-1.283147351126288, 36.822524070739746], {
+var sourceMarker = L.marker([37.3610588,127.1098818], {
 	draggable: true
 })
 	.on("dragend", function(e) {
@@ -35,7 +30,7 @@ var sourceMarker = L.marker([-1.283147351126288, 36.822524070739746], {
 	.addTo(map);
 
 // draggbale marker for destination point.Note the marker is initialized with an initial destination positon
-var targetMarker = L.marker([-1.286107765621784, 36.83449745178223], {
+var targetMarker = L.marker([37.3656199,127.1098483], {
 	draggable: true
 })
 	.on("dragend", function(e) {
@@ -47,7 +42,7 @@ var targetMarker = L.marker([-1.286107765621784, 36.83449745178223], {
 
 // function to get nearest vertex to the passed point
 function getVertex(selectedPoint) {
-	var url = `${geoserverUrl}/wfs?service=WFS&version=1.0.0&request=GetFeature&typeName=routing:nearest_vertex&outputformat=application/json&viewparams=x:${
+	var url = `${geoserverUrl}?service=WFS&version=1.0.0&request=GetFeature&typeName=dcrobot:NearestVertex&outputformat=application/json&viewparams=x:${
 		selectedPoint.lng
 	};y:${selectedPoint.lat};`;
 	$.ajax({
@@ -75,15 +70,33 @@ function loadVertex(response, isSource) {
 
 // function to get the shortest path from the give source and target nodes
 function getRoute() {
-	var url = `${geoserverUrl}/wfs?service=WFS&version=1.0.0&request=GetFeature&typeName=routing:shortest_path&outputformat=application/json&viewparams=source:${source};target:${target};`;
+	var url = `${geoserverUrl}?service=WFS&version=1.0.0&request=GetFeature&typeName=dcrobot:ShortestPath&outputformat=application/json&viewparams=source:${source};target:${target};`;
 
 	$.getJSON(url, function(data) {
 		map.removeLayer(pathLayer);
 		pathLayer = L.geoJSON(data);
 		map.addLayer(pathLayer);
+		// var flattenlayer = pathLayer.geometry.type == "LineString" ? pathLayer: pathLayer.flat();
+		// var myMovingMarker = L.Marker.movingMarker(flattenlayer,[20000]).addTo(map);
+		// myMovingMarker.start();
+		
 	});
 }
 
 getVertex(sourceMarker.getLatLng());
 getVertex(targetMarker.getLatLng());
 getRoute();
+
+map.on('baselayerchange', function (e) {
+	if (e.name === 'Naver Satellite Map') {
+		if (map.hasLayer(physicalMap)) map.removeLayer(physicalMap);
+
+		layerControl.addOverlay(hybridMap, 'Naver Hybrid Map');
+		layerControl.removeLayer(physicalMap);
+	} else {
+		if (map.hasLayer(hybridMap)) map.removeLayer(hybridMap);
+
+		layerControl.removeLayer(hybridMap);
+		layerControl.addOverlay(physicalMap, 'Naver Physical Map');
+	}
+});
