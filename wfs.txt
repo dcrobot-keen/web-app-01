@@ -1,2 +1,0 @@
-http://43.201.115.14:8080/geoserver/dcrobot/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=dcrobot%3ANearestVertex&maxFeatures=50&outputFormat=application%2Fjson
-http://43.201.115.14:8080/geoserver/dcrobot/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=dcrobot:NearestVertex&outputformat=application/json&viewparams=x:127.1098818;y:37.3610588
