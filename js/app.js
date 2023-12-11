@@ -1,4 +1,4 @@
-var geoserverUrl = "http://43.201.115.14:8080/geoserver/dcrobot/ows";
+var geoserverUrl = 'http://' + window.location.hostname+":8080/geoserver/dcrobot/ows";
 var selectedPoint = null;
 
 var source = null;
@@ -76,12 +76,27 @@ function getRoute() {
 		map.removeLayer(pathLayer);
 		pathLayer = L.geoJSON(data);
 		map.addLayer(pathLayer);
-		// var flattenlayer = pathLayer.geometry.type == "LineString" ? pathLayer: pathLayer.flat();
-		// var myMovingMarker = L.Marker.movingMarker(flattenlayer,[20000]).addTo(map);
-		// myMovingMarker.start();
+		followRoute(data.features)
 		
 	});
 }
+
+function followRoute(features) {
+	console.log(features);
+	const latlons = [];
+	for (let index = 0; index < features.length; index++) {
+		const {geometry} = features[index];
+		console.log(geometry);		
+		const coords = geometry.coordinates.flat(Infinity);
+		for (let index = 0; index < coords.length; index=index+2) {
+			latlons.push([coords[index+1],coords[index]])
+		}
+	}
+	console.log(latlons);
+	const marker = L.Marker.movingMarker(latlons, 20000, {autostart:true}).addTo(map);	
+	marker.start();
+}
+	
 
 getVertex(sourceMarker.getLatLng());
 getVertex(targetMarker.getLatLng());
