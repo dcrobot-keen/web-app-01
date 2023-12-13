@@ -136,15 +136,22 @@ function makeSingleString(coordinates,isSequence) {
 	console.log("isSequence", isSequence);
 	let feature_coord = [];
 	if(isSequence) {
-		for (let index = 0; index < coordinates.length; index++) {
-			const coords = coordinates[index];
-			feature_coord = multilinestringConcat(
-				feature_coord,
-				coords
-			);
-		} 
+		coordinates.forEach(coordinate => {
+			feature_coord = multilinestringConcat(feature_coord, coordinate);
+		});
 	} else {
-
+		const comparing = [...coordinates];
+		console.log(comparing);
+		for (let i = 0; i < coordinates.length; i++) {
+			for (let j = 0; j < coordinates.length; j++) {
+				const compared = multilinestringConcat(coordinates[i],comparing[j]);
+				console.log(compared);
+				if(compared.length>0) {
+					feature_coord = compared;
+					comparing.splice(j-1,1);
+				}
+			}
+		}
 	}
 
 	console.log('return single', feature_coord);
