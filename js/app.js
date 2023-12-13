@@ -1,12 +1,13 @@
-var geoserverUrl = 'http://' + window.location.hostname+":8080/geoserver/dcrobot/ows";
+const getServerPort ='8080'
+var geoserverUrl = 'http://'+window.location.hostname + ':'+ getServerPort+ "/geoserver/dcrobot/ows";
 var selectedPoint = null;
 
 var source = null;
 var target = null;
 
 var map = L.map("map", {
-	center: [37.3599201,127.1098894],
-	zoom: 14, //set the zoom level
+	center: [37.363429,127.1110492],
+	zoom: 10, //set the zoom level
 	crs: L.Proj.CRS.Daum,
     worldCopyJump: false,   
 });
@@ -73,27 +74,101 @@ function getRoute() {
 	var url = `${geoserverUrl}?service=WFS&version=1.0.0&request=GetFeature&typeName=dcrobot:ShortestPath&outputformat=application/json&viewparams=source:${source};target:${target};`;
 
 	$.getJSON(url, function(data) {
+		console.log(data);
 		map.removeLayer(pathLayer);
 		pathLayer = L.geoJSON(data);
 		map.addLayer(pathLayer);
+		
 		followRoute(data.features)
 		
 	});
 }
+//when we need sequence
+function compareSeq(a, b) {
+	return a.properties.seq - b.properties.seq;
+}
 
-function followRoute(features) {
-	console.log(features);
-	const latlons = [];
-	for (let index = 0; index < features.length; index++) {
-		const {geometry} = features[index];
-		console.log(geometry);		
-		const coords = geometry.coordinates.flat(Infinity);
-		for (let index = 0; index < coords.length; index=index+2) {
-			latlons.push([coords[index+1],coords[index]])
-		}
+function multilinestringConcat(arr1, arr2){
+	if(arr1.length == 0) return arr2;
+	const arr1EndIndex = arr1.length-1;
+	const arr2EndIndex = arr2.length-1;
+	// if(arr1[0][0]==arr2[0][0]&&arr1[0][1]==arr2[0][1]) 
+	// 	return [...arr1].reverse().concat(arr2);
+	// else if(arr1[0][0]==arr2[arr2EndIndex][0]&&arr1[0][1]==arr2[arr2EndIndex][1]) 
+	// 	return arr2.concat(arr1);
+	// else if(arr1[arr1EndIndex][0]==arr2[arr2EndIndex][0]&&arr1[arr1EndIndex][1]==arr2[arr2EndIndex][1]) 
+	// 	return arr1.concat([...arr2].reverse());
+	// else if(arr1[arr1EndIndex][0]==arr2[0][0]&&arr1[arr1EndIndex][1]==arr2[0][1]) 
+	// 	return arr1.concat(arr2);
+	// else return [];
+	if(arr1[0][0]==arr2[0][0]&&arr1[0][1]==arr2[0][1]) 
+		return [...arr1].reverse().slice(0,arr1EndIndex).concat(arr2);
+	else if(arr1[0][0]==arr2[arr2EndIndex][0]&&arr1[0][1]==arr2[arr2EndIndex][1]) 
+		return arr2.slice(0,arr2EndIndex).concat(arr1);
+	else if(arr1[arr1EndIndex][0]==arr2[arr2EndIndex][0]&&arr1[arr1EndIndex][1]==arr2[arr2EndIndex][1]) 
+		return arr1.slice(0,arr2EndIndex).concat([...arr2].reverse());
+	else if(arr1[arr1EndIndex][0]==arr2[0][0]&&arr1[arr1EndIndex][1]==arr2[0][1]) 
+		return arr1.slice(0,arr1EndIndex).concat(arr2);
+	else return [];
+}
+function revsereLonLat(arr){
+	const rra = [];
+	arr.forEach(pos=>{
+		rra.push([...pos].reverse());
+	})
+	return rra;
+}
+// const a1 = [[0,1],[0,2],[0,3]];
+// const a2 = [[0,1],[0,4],[0,5]];
+// const a3 = [[0,2],[0,4],[0,1]];
+// const a4 = [[0,3],[0,4],[0,5]];//
+// const a5 = [[0,7],[0,4],[0,3]];
+// const a6 = [[0,3],[0,4]];
+// console.log(multilinestringConcat(a1,a2));
+// console.log(multilinestringConcat(a1,a3));
+// console.log(multilinestringConcat(a1,a4));
+// console.log(multilinestringConcat(a1,a5));
+// console.log(multilinestringConcat(a1,a6));
+
+function makeSingleString(coordinates,isSequence) {
+	console.log('----------------makeSingleString Start----------------')
+	console.log("input coordinates : ",coordinates);
+	console.log("isSequence", isSequence);
+	let feature_coord = [];
+	if(isSequence) {
+		for (let index = 0; index < coordinates.length; index++) {
+			const coords = coordinates[index];
+			feature_coord = multilinestringConcat(
+				feature_coord,
+				coords
+			);
+		} 
+	} else {
+
 	}
-	console.log(latlons);
-	const marker = L.Marker.movingMarker(latlons, 20000, {autostart:true}).addTo(map);	
+
+	console.log('return single', feature_coord);
+	return feature_coord;
+}
+function followRoute(features) {
+	features.sort(compareSeq);
+	console.log(features)
+	const latlons = [];
+	// latlons.push(features[0].geometry.coordinates[0].)
+	features.forEach(feature=>{
+		if(feature.geometry 
+			&& feature.geometry 
+			&& feature.geometry.coordinates) {
+			const coordinates = makeSingleString(revsereLonLat(feature.geometry.coordinates),true);
+			if(coordinates.length==1) 
+				latlons.push(revsereLonLat(coordinates[0]));
+			else latlons.push(coordinates);
+		}
+	});
+	console.log("----------re-arrange----------");
+	const concatted = makeSingleString(latlons);
+	console.log('latlons,concatted',latlons,concatted);
+	const marker = L.Marker.movingMarker(concatted, 20000, {autostart:true}).addTo(map);	
 	marker.start();
 }
 	
