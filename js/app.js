@@ -89,6 +89,7 @@ function compareSeq(a, b) {
 }
 
 function multilinestringConcat(arr1, arr2){
+	console.log("multilinestringConcat",arr1,arr2)
 	if(arr1.length == 0) return arr2;
 	const arr1EndIndex = arr1.length-1;
 	const arr2EndIndex = arr2.length-1;
@@ -106,15 +107,19 @@ function multilinestringConcat(arr1, arr2){
 	else if(arr1[0][0]==arr2[arr2EndIndex][0]&&arr1[0][1]==arr2[arr2EndIndex][1]) 
 		return arr2.slice(0,arr2EndIndex).concat(arr1);
 	else if(arr1[arr1EndIndex][0]==arr2[arr2EndIndex][0]&&arr1[arr1EndIndex][1]==arr2[arr2EndIndex][1]) 
-		return arr1.slice(0,arr2EndIndex).concat([...arr2].reverse());
+		return arr1.slice(0,arr1EndIndex).concat([...arr2].reverse());
 	else if(arr1[arr1EndIndex][0]==arr2[0][0]&&arr1[arr1EndIndex][1]==arr2[0][1]) 
 		return arr1.slice(0,arr1EndIndex).concat(arr2);
 	else return [];
 }
-function revsereLonLat(arr){
+function reverseCoord(arr){
 	const rra = [];
-	arr.forEach(pos=>{
-		rra.push([...pos].reverse());
+	arr.forEach(coords=>{
+		const innerCorrds = [];
+		coords.forEach(pos=>{
+			innerCorrds.push([pos[1],pos[0]]);
+		})
+		rra.push(innerCorrds);
 	})
 	return rra;
 }
@@ -131,9 +136,7 @@ function revsereLonLat(arr){
 // console.log(multilinestringConcat(a1,a6));
 
 function makeSingleString(coordinates,isSequence) {
-	console.log('----------------makeSingleString Start----------------')
-	console.log("input coordinates : ",coordinates);
-	console.log("isSequence", isSequence);
+	if(coordinates && coordinates.length == 1 ) return coordinates.flat();
 	let feature_coord = [];
 	if(isSequence) {
 		coordinates.forEach(coordinate => {
@@ -141,14 +144,17 @@ function makeSingleString(coordinates,isSequence) {
 		});
 	} else {
 		const comparing = [...coordinates];
-		console.log(comparing);
-		for (let i = 0; i < coordinates.length; i++) {
-			for (let j = 0; j < coordinates.length; j++) {
-				const compared = multilinestringConcat(coordinates[i],comparing[j]);
-				console.log(compared);
-				if(compared.length>0) {
-					feature_coord = compared;
-					comparing.splice(j-1,1);
+		const checkedList = new Array(coordinates.length);
+		checkedList.fill(false);
+
+		for (let i = 0; i < comparing.length; i++) {
+			for(let j = 0; j < comparing.length; j++) {
+				if(!checkedList[j]){
+					const compared = multilinestringConcat(feature_coord,comparing[j]);
+					if(compared.length>0) {
+						feature_coord = compared;
+						checkedList[j] = true;
+					}
 				}
 			}
 		}
@@ -157,6 +163,7 @@ function makeSingleString(coordinates,isSequence) {
 	console.log('return single', feature_coord);
 	return feature_coord;
 }
+
 function followRoute(features) {
 	features.sort(compareSeq);
 	console.log(features)
@@ -166,15 +173,15 @@ function followRoute(features) {
 		if(feature.geometry 
 			&& feature.geometry 
 			&& feature.geometry.coordinates) {
-			const coordinates = makeSingleString(revsereLonLat(feature.geometry.coordinates),true);
+				console.log(feature.geometry.coordinates,reverseCoord(feature.geometry.coordinates))
+			const coordinates = makeSingleString(reverseCoord(feature.geometry.coordinates));
+			console.log(coordinates);
 			if(coordinates.length==1) 
-				latlons.push(revsereLonLat(coordinates[0]));
+				latlons.push(reverseCoord(coordinates[0]));
 			else latlons.push(coordinates);
 		}
 	});
-	console.log("----------re-arrange----------");
 	const concatted = makeSingleString(latlons);
-	console.log('latlons,concatted',latlons,concatted);
 	const marker = L.Marker.movingMarker(concatted, 20000, {autostart:true}).addTo(map);	
 	marker.start();
 }
