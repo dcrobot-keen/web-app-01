@@ -1,6 +1,3 @@
-//http://dev-pgrouting-ncl.nfra.io:8080/geoserver/ne/wms?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&FORMAT=image%2Fpng&TRANSPARENT=true&STYLES&LAYERS=ne%3Azone&exceptions=application%2Fvnd.ogc.se_inimage&SRS=EPSG%3A4326&WIDTH=768&HEIGHT=330&BBOX=127.1117627620697%2C37.36592352390289%2C127.11588263511658%2C37.36769378185272
-// const getServerPort ='8080'
-// var geoserverUrl = 'http://'+window.location.hostname + ':'+ getServerPort+ "/geoserver/dcrobot/ows";
 var geoserverUrl = 'http://dev-pgrouting-ncl.nfra.io:8080/geoserver/ne/ows';
 var selectedPoint = null;
 
@@ -81,7 +78,7 @@ function loadVertex(response, isSource) {
 
 // function to get the shortest path from the give source and target nodes
 function getRoute() {
-	var url = `${geoserverUrl}?service=WFS&version=1.0.0&request=GetFeature&typeName=dcrobot:ShortestPath&outputformat=application/json&viewparams=source:${source};target:${target};`;
+	var url = `${geoserverUrl}?service=WFS&version=1.0.0&request=GetFeature&typeName=dcrobot:ShortestPath-2&outputformat=application/json&viewparams=source:${source};target:${target};`;
 
 	$.getJSON(url, function(data) {
 		map.removeLayer(pathLayer);
@@ -103,3 +100,16 @@ getVertex(sourceMarker.getLatLng());
 getVertex(targetMarker.getLatLng());
 getRoute();
 
+map.on('baselayerchange', function (e) {
+	if (e.name === 'Naver Satellite Map') {
+		if (map.hasLayer(physicalMap)) map.removeLayer(physicalMap);
+
+		layerControl.addOverlay(hybridMap, 'Naver Hybrid Map');
+		layerControl.removeLayer(physicalMap);
+	} else {
+		if (map.hasLayer(hybridMap)) map.removeLayer(hybridMap);
+
+		layerControl.removeLayer(hybridMap);
+		layerControl.addOverlay(physicalMap, 'Naver Physical Map');
+	}
+});
